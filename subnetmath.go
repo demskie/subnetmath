@@ -73,6 +73,29 @@ func DuplicateAddr(addr net.IP) net.IP {
 	return newIP
 }
 
+func abs(val int) int {
+	if val < 0 {
+		return val * -1
+	}
+	return val
+}
+
+func AddToAddr(addr net.IP, val int) net.IP {
+	for i := 0; i < abs(val); i++ {
+		for octet := len(addr) - 1; octet >= 0; octet-- {
+			if val > 0 {
+				addr[octet]++
+			} else {
+				addr[octet]--
+			}
+			if uint8(addr[octet]) > 0 {
+				break
+			}
+		}
+	}
+	return addr
+}
+
 func NextAddr(addr net.IP) net.IP {
 	newIP := DuplicateAddr(addr)
 	for octet := len(newIP) - 1; octet >= 0; octet-- {
