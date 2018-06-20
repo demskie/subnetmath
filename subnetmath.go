@@ -84,25 +84,17 @@ func NextAddr(addr net.IP) net.IP {
 	return newIP
 }
 
-func GetAllSubnetHosts(subnet *net.IPNet, maximum int, includeBroadcast bool) []net.IP {
-	hosts := make([]net.IP, 0)
+func AddressCount(network *net.IPNet) int {
+	ones, bits := network.Mask.Size()
+	return 2 << uint((bits-1)-ones)
+}
+
+func GetAllAddresses(subnet *net.IPNet) []net.IP {
+	hosts := make([]net.IP, 0, AddressCount(subnet))
 	currentIP := SubnetZeroAddr(subnet)
-	firstIP := DuplicateAddr(currentIP)
-	for {
-		if len(hosts) >= maximum {
-			break
-		}
-		if subnet.Contains(currentIP) &&
-			bytes.Equal(currentIP, firstIP) == false || len(hosts) == 0 {
-			hosts = append(hosts, currentIP)
-			currentIP = NextAddr(currentIP)
-		} else {
-			break
-		}
-	}
-	ones, _ := subnet.Mask.Size()
-	if ones <= 30 && subnet.IP.To4() != nil {
-		hosts = hosts[:len(hosts)-1]
+	for subnet.Contains(currentIP) {
+		hosts = append(hosts, currentIP)
+		currentIP = NextAddr(currentIP)
 	}
 	return hosts
 }
@@ -151,14 +143,9 @@ func FindMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet
 	return nil
 }
 
-func NumberAddresses(network *net.IPNet) int {
-	ones, bits := network.Mask.Size()
-	return 2 << uint((bits-1)-ones)
-}
-
 func NextNetwork(network *net.IPNet) *net.IPNet {
 	newNetwork := DuplicateNetwork(network)
-	for i := 0; i < NumberAddresses(newNetwork); i++ {
+	for i := 0; i < AddressCount(newNetwork); i++ {
 		for octet := len(newNetwork.IP) - 1; octet >= 0; octet-- {
 			newNetwork.IP[octet]++
 			if uint8(newNetwork.IP[octet]) > 0 {
