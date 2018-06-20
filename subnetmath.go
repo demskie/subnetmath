@@ -151,11 +151,14 @@ func FindMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet
 	return nil
 }
 
+func NumberAddresses(network *net.IPNet) int {
+	ones, bits := network.Mask.Size()
+	return 2 << uint((bits-1)-ones)
+}
+
 func NextNetwork(network *net.IPNet) *net.IPNet {
 	newNetwork := DuplicateNetwork(network)
-	ones, bits := newNetwork.Mask.Size()
-	hosts := 2 << uint((bits-1)-ones)
-	for i := 0; i < hosts; i++ {
+	for i := 0; i < NumberAddresses(newNetwork); i++ {
 		for octet := len(newNetwork.IP) - 1; octet >= 0; octet-- {
 			newNetwork.IP[octet]++
 			if uint8(newNetwork.IP[octet]) > 0 {
@@ -171,8 +174,9 @@ func UnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.I
 		return
 	}
 	newSubnet := DuplicateNetwork(aggregate)
+	var canidateSubnet *net.IPNet
 	for aggregate.Contains(newSubnet.IP) {
-		canidateSubnet := FindMaskWithoutIntersection(newSubnet, subnets...)
+		canidateSubnet = FindMaskWithoutIntersection(newSubnet, subnets...)
 		if canidateSubnet != nil {
 			unused = append(unused, canidateSubnet)
 			newSubnet = NextNetwork(canidateSubnet)
