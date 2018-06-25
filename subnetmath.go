@@ -168,7 +168,7 @@ func FindMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet
 
 func NextNetwork(network *net.IPNet) *net.IPNet {
 	newNetwork := DuplicateNetwork(network)
-	for i := 0; i < AddressCount(newNetwork); i++ {
+	for i := 0; i == 0 || i < AddressCount(newNetwork); i++ {
 		for octet := len(newNetwork.IP) - 1; octet >= 0; octet-- {
 			newNetwork.IP[octet]++
 			if uint8(newNetwork.IP[octet]) > 0 {
