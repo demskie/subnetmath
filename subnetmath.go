@@ -124,7 +124,7 @@ func GetAllAddresses(subnet *net.IPNet) []net.IP {
 
 func BlindlyParseCIDR(cidr string) *net.IPNet {
 	addr, network, _ := net.ParseCIDR(cidr)
-	if network.IP.Equal(addr) {
+	if network != nil && network.IP.Equal(addr) {
 		return network
 	}
 	return nil
