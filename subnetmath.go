@@ -2,9 +2,13 @@ package subnetmath
 
 import (
 	"bytes"
+	"encoding/binary"
+	"math"
+	"math/big"
 	"net"
 )
 
+// NetworksAreIdentical returns a bool with regards to the two networks being equal
 func NetworksAreIdentical(first, second *net.IPNet) bool {
 	if first != nil && second != nil && first.IP.Equal(second.IP) {
 		firstSize, _ := first.Mask.Size()
@@ -16,7 +20,14 @@ func NetworksAreIdentical(first, second *net.IPNet) bool {
 	return false
 }
 
+// NetworkComesBefore returns a bool with regards to numerical network order.
+// Note that IPv4 networks come before IPv6 networks.
 func NetworkComesBefore(first, second *net.IPNet) bool {
+	if first.IP.To4() == nil && second.IP.To4() != nil {
+		return true
+	} else if first.IP.To4() != nil && second.IP.To4() == nil {
+		return false
+	}
 	firstBytes, secondBytes := []byte(first.IP), []byte(second.IP)
 	difference := bytes.Compare(firstBytes, secondBytes)
 	if difference > 0 {
@@ -33,9 +44,16 @@ func NetworkComesBefore(first, second *net.IPNet) bool {
 	return false
 }
 
+// GetClassfulNetwork either return the classful network given an IPv4 address or
+// return nil if given a multicast address or IPv6 address
 func GetClassfulNetwork(oldIP net.IP) *net.IPNet {
-	var newIP net.IP
-	var newMask net.IPMask
+	if oldIP.To4() == nil {
+		return nil
+	}
+	var (
+		newIP   net.IP
+		newMask net.IPMask
+	)
 	switch {
 	case uint8(oldIP[0]) < 128:
 		newIP = net.IPv4(uint8(oldIP[0]), 0, 0, 0)
@@ -52,6 +70,7 @@ func GetClassfulNetwork(oldIP net.IP) *net.IPNet {
 	return &net.IPNet{IP: newIP, Mask: newMask}
 }
 
+// DuplicateNetwork returns a new copy of *net.IPNet
 func DuplicateNetwork(network *net.IPNet) *net.IPNet {
 	newIP := make(net.IP, len(network.IP))
 	newMask := make(net.IPMask, len(network.Mask))
@@ -63,25 +82,21 @@ func DuplicateNetwork(network *net.IPNet) *net.IPNet {
 	}
 }
 
+// SubnetZeroAddr returns the subnet zero address
 func SubnetZeroAddr(subnet *net.IPNet) net.IP {
 	return subnet.IP.Mask(subnet.Mask)
 }
 
+// DuplicateAddr creates a new copy of net.IP
 func DuplicateAddr(addr net.IP) net.IP {
 	newIP := make(net.IP, len(addr))
 	copy(newIP, addr)
 	return newIP
 }
 
-func abs(val int) int {
-	if val < 0 {
-		return val * -1
-	}
-	return val
-}
-
+// AddToAddr returns the same net.IP with its address incremented by val
 func AddToAddr(addr net.IP, val int) net.IP {
-	for i := 0; i < abs(val); i++ {
+	for i := 0; i < val; i++ {
 		for octet := len(addr) - 1; octet >= 0; octet-- {
 			if val > 0 {
 				addr[octet]++
@@ -96,6 +111,7 @@ func AddToAddr(addr net.IP, val int) net.IP {
 	return addr
 }
 
+// NextAddr returns a new net.IP that is the next address
 func NextAddr(addr net.IP) net.IP {
 	newIP := DuplicateAddr(addr)
 	for octet := len(newIP) - 1; octet >= 0; octet-- {
@@ -107,30 +123,56 @@ func NextAddr(addr net.IP) net.IP {
 	return newIP
 }
 
-func AddressCount(network *net.IPNet) int {
-	ones, bits := network.Mask.Size()
-	return 2 << uint((bits-1)-ones)
+func maxInt() int {
+	if binary.Size(int(0)) == 4 {
+		return math.MaxInt32
+	}
+	return math.MaxInt64
 }
 
+// AddressCountInt will return -1 if the number of addresses would overflow an Int
+func AddressCountInt(network *net.IPNet) int {
+	val := AddressCountBigInt(network)
+	limit := big.NewInt(int64(maxInt()))
+	if val.Cmp(limit) > 0 {
+		return -1
+	}
+	return int(val.Int64())
+}
+
+// AddressCountBigInt returns the number of addresses
+func AddressCountBigInt(network *net.IPNet) *big.Int {
+	ones, bits := network.Mask.Size()
+	return new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(bits-ones)), nil)
+}
+
+// GetAllAddresses will return a slice of net.IPs for the subnet specified.
+// However nil is returned instead if the slice length is greater than the max int value
 func GetAllAddresses(subnet *net.IPNet) []net.IP {
-	hosts := make([]net.IP, 0, AddressCount(subnet))
+	numAddresses := AddressCountInt(subnet)
+	if numAddresses < 0 {
+		return nil
+	}
+	results := make([]net.IP, numAddresses)
 	currentIP := SubnetZeroAddr(subnet)
-	for subnet.Contains(currentIP) {
-		hosts = append(hosts, currentIP)
+	for i := range results {
+		results[i] = currentIP
 		currentIP = NextAddr(currentIP)
 	}
-	return hosts
+	return results
 }
 
-func BlindlyParseCIDR(cidr string) *net.IPNet {
-	addr, network, _ := net.ParseCIDR(cidr)
-	if network != nil && network.IP.Equal(addr) {
+// ParseNetworkCIDR is a convienence function that will return either the *net.IPNet
+// or nil if the supplied cidr is invalid
+func ParseNetworkCIDR(cidr string) *net.IPNet {
+	addr, network, err := net.ParseCIDR(cidr)
+	if err == nil && network != nil && network.IP.Equal(addr) {
 		return network
 	}
 	return nil
 }
 
-func FindNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
+func findNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
 	for _, otherNetwork := range otherNetworks {
 		if network.Contains(otherNetwork.IP) || otherNetwork.Contains(network.IP) {
 			return otherNetwork
@@ -139,6 +181,7 @@ func FindNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *n
 	return nil
 }
 
+// ShrinkNetwork increases the mask size by one
 func ShrinkNetwork(network *net.IPNet) *net.IPNet {
 	ones, bits := network.Mask.Size()
 	if ones < bits {
@@ -150,14 +193,14 @@ func ShrinkNetwork(network *net.IPNet) *net.IPNet {
 	return nil
 }
 
-func FindMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
+func findMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
 	currentNetwork := DuplicateNetwork(network)
 	for {
 		currentNetwork = ShrinkNetwork(currentNetwork)
 		if currentNetwork == nil {
 			break
 		}
-		if FindNetworkIntersection(currentNetwork, otherNetworks...) == nil {
+		if findNetworkIntersection(currentNetwork, otherNetworks...) == nil {
 			if SubnetZeroAddr(currentNetwork).Equal(currentNetwork.IP) {
 				return currentNetwork
 			}
@@ -166,9 +209,19 @@ func FindMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet
 	return nil
 }
 
+func isZero(val *big.Int) bool {
+	return val.Cmp(big.NewInt(0)) == 0
+}
+
+func addOne(val *big.Int) *big.Int {
+	return val.Add(val, big.NewInt(1))
+}
+
+// NextNetwork returns the next network of the same size
 func NextNetwork(network *net.IPNet) *net.IPNet {
 	newNetwork := DuplicateNetwork(network)
-	for i := 0; i == 0 || i < AddressCount(newNetwork); i++ {
+	maskSize := AddressCountBigInt(newNetwork)
+	for i := big.NewInt(0); isZero(i) || i.Cmp(maskSize) < 0; addOne(i) {
 		for octet := len(newNetwork.IP) - 1; octet >= 0; octet-- {
 			newNetwork.IP[octet]++
 			if uint8(newNetwork.IP[octet]) > 0 {
@@ -179,14 +232,15 @@ func NextNetwork(network *net.IPNet) *net.IPNet {
 	return newNetwork
 }
 
-func UnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.IPNet) {
-	if FindNetworkIntersection(aggregate, subnets...) == nil {
-		return
+// FindUnusedSubnets returns a slice of unused subnets given the aggregate and sibling subnets
+func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.IPNet) {
+	if findNetworkIntersection(aggregate, subnets...) == nil {
+		return nil
 	}
 	newSubnet := DuplicateNetwork(aggregate)
 	var canidateSubnet *net.IPNet
 	for aggregate.Contains(newSubnet.IP) {
-		canidateSubnet = FindMaskWithoutIntersection(newSubnet, subnets...)
+		canidateSubnet = findMaskWithoutIntersection(newSubnet, subnets...)
 		if canidateSubnet != nil {
 			unused = append(unused, canidateSubnet)
 			newSubnet = NextNetwork(canidateSubnet)
