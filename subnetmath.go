@@ -234,6 +234,9 @@ func NextNetwork(network *net.IPNet) *net.IPNet {
 
 // FindUnusedSubnets returns a slice of unused subnets given the aggregate and sibling subnets
 func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.IPNet) {
+	if len(subnets) == 0 {
+		return []*net.IPNet{aggregate}
+	}
 	if findNetworkIntersection(aggregate, subnets...) == nil {
 		return nil
 	}

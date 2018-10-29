@@ -19,13 +19,26 @@ func TestGetAllAddresses(t *testing.T) {
 }
 
 func TestFindUnusedSubnets(t *testing.T) {
-	aggregate := ParseNetworkCIDR("192.168.0.0/22")
-	subnets := []*net.IPNet{
+	aggregate := ParseNetworkCIDR("10.71.8.0/21")
+	subnets := []*net.IPNet{}
+	output := FindUnusedSubnets(aggregate, subnets...)
+	expected := []*net.IPNet{
+		ParseNetworkCIDR("10.71.8.0/21"),
+	}
+	if reflect.DeepEqual(output, expected) == false {
+		t.Error(
+			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
+			"\n<<<actual_output>>>\n", output,
+			"\n<<<expected_output>>>\n", expected,
+		)
+	}
+	aggregate = ParseNetworkCIDR("192.168.0.0/22")
+	subnets = []*net.IPNet{
 		ParseNetworkCIDR("192.168.1.0/24"),
 		ParseNetworkCIDR("192.168.2.32/30"),
 	}
-	output := FindUnusedSubnets(aggregate, subnets...)
-	expected := []*net.IPNet{
+	output = FindUnusedSubnets(aggregate, subnets...)
+	expected = []*net.IPNet{
 		ParseNetworkCIDR("192.168.0.0/24"),
 		ParseNetworkCIDR("192.168.2.0/27"),
 		ParseNetworkCIDR("192.168.2.36/30"),
