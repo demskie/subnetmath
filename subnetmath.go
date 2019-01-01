@@ -254,3 +254,19 @@ func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*n
 	}
 	return unused
 }
+
+const allOnesAddress = (255 * 256 * 256 * 256) + (255 * 256 * 256) + (255 * 256) + (255)
+
+// ConvertIntegerIPv4 will return the net.IP of the integer represented address
+func ConvertIntegerIPv4(intAddress uint64) *net.IP {
+	if intAddress > allOnesAddress {
+		return nil
+	}
+	result := net.IPv4(
+		uint8((intAddress>>24)&0xFF),
+		uint8((intAddress>>16)&0xFF),
+		uint8((intAddress>>8)&0xFF),
+		uint8(intAddress&0xFF),
+	)
+	return &result
+}

@@ -6,6 +6,18 @@ import (
 	"testing"
 )
 
+func TestConvertIntegerIPv4(t *testing.T) {
+	actualAddress := ConvertIntegerIPv4(3232235778)
+	expectedAddress := net.ParseIP("192.168.1.2")
+	if !actualAddress.Equal(expectedAddress) {
+		t.Error("\n",
+			"<<<input>>>\n", "3232235778",
+			"\n<<<actual_output>>>\n", actualAddress,
+			"\n<<<expected_output>>>\n", expectedAddress,
+		)
+	}
+}
+
 func TestGetAllAddresses(t *testing.T) {
 	input := ParseNetworkCIDR("2607:fb38:10:1::/64")
 	output := GetAllAddresses(input)
@@ -133,6 +145,18 @@ func TestFindUnusedSubnets(t *testing.T) {
 			"\n<<<actual_output>>>\n", output,
 			"\n<<<expected_output>>>\n", expected,
 		)
+	}
+}
+
+func BenchmarkConvertIntegerIPv4(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ConvertIntegerIPv4(3232235778)
+	}
+}
+
+func BenchmarkParseNetworkCIDR(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ParseNetworkCIDR("192.168.1.2/24")
 	}
 }
 
