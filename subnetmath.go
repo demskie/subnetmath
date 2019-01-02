@@ -305,8 +305,10 @@ func FindInbetweenV4Subnets(start, stop net.IP) (subnets []*net.IPNet) {
 			}
 			subnets = append(subnets, currentSubnet)
 			current = NextNetwork(currentSubnet).IP
-			if !current.Equal(stop) && !AddressComesBefore(current, stop) {
-				break
+			if !current.Equal(stop) {
+				if AddressComesBefore(current, start) || !AddressComesBefore(current, stop) {
+					break
+				}
 			}
 		}
 	}
