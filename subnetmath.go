@@ -327,7 +327,30 @@ func ConvertV4IntegerToAddress(intAddress uint32) net.IP {
 	return nil
 }
 
-// ConvertV4AddressToInteger will return the net.IP of the integer represented address
+var allOnesAddressV6 = big.NewInt(0)
+
+func init() {
+	currentVal := big.NewInt(255)
+	for i := 1; i < 16; i++ {
+		allOnesAddressV6.Add(allOnesAddressV6, currentVal)
+		currentVal.Mul(currentVal, big.NewInt(256))
+	}
+}
+
+// ConvertV6IntegerToAddress will return the net.IP of the big.Int represented address
+func ConvertV6IntegerToAddress(intAddress *big.Int) net.IP {
+	if intAddress.Cmp(allOnesAddressV6) <= 0 {
+		return intAddress.Bytes()
+	}
+	return nil
+}
+
+// ConvertV4AddressToInteger will return the uint32 of a given IPv4 address
 func ConvertV4AddressToInteger(address net.IP) uint32 {
 	return binary.BigEndian.Uint32(address[12:16])
+}
+
+// ConvertV6AddressToInteger will return the *bit.Int of a given IPv6 address
+func ConvertV6AddressToInteger(address net.IP) *big.Int {
+	return big.NewInt(0).SetBytes(address.To16())
 }
