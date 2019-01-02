@@ -250,14 +250,15 @@ func addOne(val *big.Int) *big.Int {
 // NextNetwork returns the next network of the same size
 func NextNetwork(network *net.IPNet) *net.IPNet {
 	newNetwork := DuplicateNetwork(network)
-	maskSize := AddressCountBigInt(newNetwork)
-	for i := big.NewInt(0); isZero(i) || i.Cmp(maskSize) < 0; addOne(i) {
-		for octet := len(newNetwork.IP) - 1; octet >= 0; octet-- {
-			newNetwork.IP[octet]++
-			if uint8(newNetwork.IP[octet]) > 0 {
-				break
-			}
-		}
+	networkIncrement := AddressCountBigInt(newNetwork)
+	if network.IP.To4() != nil {
+		networkInteger := ConvertV4AddressToInteger(network.IP)
+		networkInteger += uint32(networkIncrement.Int64())
+		newNetwork.IP = ConvertV4IntegerToAddress(networkInteger)
+	} else {
+		networkInteger := ConvertV6AddressToInteger(network.IP)
+		networkInteger.Add(networkInteger, networkIncrement)
+		newNetwork.IP = ConvertV6IntegerToAddress(networkInteger)
 	}
 	return newNetwork
 }
