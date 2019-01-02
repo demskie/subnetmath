@@ -2,7 +2,6 @@ package subnetmath
 
 import (
 	"net"
-	"reflect"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -102,7 +101,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 	expected := []*net.IPNet{
 		ParseNetworkCIDR("10.71.8.0/21"),
 	}
-	if reflect.DeepEqual(output, expected) == false {
+	if subnetsAreEqual(output, expected) == false {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,
@@ -125,7 +124,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 		ParseNetworkCIDR("192.168.2.128/25"),
 		ParseNetworkCIDR("192.168.3.0/24"),
 	}
-	if reflect.DeepEqual(output, expected) == false {
+	if subnetsAreEqual(output, expected) == false {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,
@@ -204,7 +203,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 		ParseNetworkCIDR("172.16.255.128/25"),
 	}
 	output = FindUnusedSubnets(aggregate, subnets...)
-	if reflect.DeepEqual(output, expected) == false {
+	if subnetsAreEqual(output, expected) == false {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,

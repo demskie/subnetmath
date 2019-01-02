@@ -350,7 +350,7 @@ func ConvertV6IntegerToAddress(intAddress *big.Int) net.IP {
 
 // ConvertV4AddressToInteger will return the uint32 of a given IPv4 address
 func ConvertV4AddressToInteger(address net.IP) uint32 {
-	return binary.BigEndian.Uint32(address[12:16])
+	return binary.BigEndian.Uint32(address.To4())
 }
 
 // ConvertV6AddressToInteger will return the *bit.Int of a given IPv6 address

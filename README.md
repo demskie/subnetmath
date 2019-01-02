@@ -15,15 +15,15 @@ func main() {
 ```Bash
 Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
 
-BenchmarkConvertV4IntegerToAddress-8   	500000000	         3.37 ns/op	       0 B/op	       0 allocs/op
-BenchmarkConvertV4AddressToInteger-8   	2000000000	         0.42 ns/op	       0 B/op	       0 allocs/op
-BenchmarkParseNetworkCIDR-8            	10000000	       171 ns/op	      72 B/op	       4 allocs/op
-BenchmarkNetworkComesBefore-8          	50000000	        24.2 ns/op	       0 B/op	       0 allocs/op
-BenchmarkGetClassfulNetwork-8          	20000000	        90.9 ns/op	      68 B/op	       3 allocs/op
-BenchmarkNextAddr-8                    	50000000	        26.5 ns/op	      16 B/op	       1 allocs/op
-BenchmarkShrinkNetwork-8               	 1000000	      1719 ns/op	    1256 B/op	      50 allocs/op
-BenchmarkNextNetwork-8                 	  500000	      2660 ns/op	    2248 B/op	      61 allocs/op
-BenchmarkGetAllAddresses-8             	   50000	     25808 ns/op	   29044 B/op	    1035 allocs/op
-BenchmarkFindUnusedSubnets-8           	    3000	    436046 ns/op	  242548 B/op	    8748 allocs/op
-BenchmarkFindInbetweenV4Subnets-8      	   10000	    147543 ns/op	  121664 B/op	    3267 allocs/op
+BenchmarkConvertV4IntegerToAddress-8   	500000000	         3.35 ns/op	       0 B/op	       0 allocs/op
+BenchmarkConvertV4AddressToInteger-8   	200000000	         9.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkParseNetworkCIDR-8            	10000000	       173 ns/op	      72 B/op	       4 allocs/op
+BenchmarkNetworkComesBefore-8          	50000000	        28.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkGetClassfulNetwork-8          	20000000	        91.0 ns/op	      68 B/op	       3 allocs/op
+BenchmarkNextAddr-8                    	50000000	        26.2 ns/op	      16 B/op	       1 allocs/op
+BenchmarkShrinkNetwork-8               	 1000000	      1744 ns/op	    1256 B/op	      50 allocs/op
+BenchmarkNextNetwork-8                 	 3000000	       417 ns/op	     372 B/op	      11 allocs/op
+BenchmarkGetAllAddresses-8             	   50000	     25530 ns/op	   29044 B/op	    1035 allocs/op
+BenchmarkFindUnusedSubnets-8           	    5000	    365557 ns/op	  162620 B/op	    6440 allocs/op
+BenchmarkFindInbetweenV4Subnets-8      	  200000	     10246 ns/op	    6880 B/op	     193 allocs/op
 ```
