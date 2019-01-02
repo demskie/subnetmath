@@ -20,28 +20,50 @@ func NetworksAreIdentical(first, second *net.IPNet) bool {
 	return false
 }
 
+func subnetsAreEqual(alpha, bravo []*net.IPNet) bool {
+	if len(alpha) != len(bravo) {
+		return false
+	}
+	for i := range alpha {
+		if !NetworksAreIdentical(alpha[i], bravo[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // NetworkComesBefore returns a bool with regards to numerical network order.
 // Note that IPv4 networks come before IPv6 networks.
 func NetworkComesBefore(first, second *net.IPNet) bool {
-	if first.IP.To4() == nil && second.IP.To4() != nil {
-		return true
-	} else if first.IP.To4() != nil && second.IP.To4() == nil {
-		return false
-	}
-	firstBytes, secondBytes := []byte(first.IP), []byte(second.IP)
-	difference := bytes.Compare(firstBytes, secondBytes)
-	if difference > 0 {
-		return true
-	} else if difference < 0 {
-		return false
-	} else {
+	if first.IP.Equal(second.IP) {
 		firstMask, _ := first.Mask.Size()
 		secondMask, _ := second.Mask.Size()
 		if firstMask < secondMask {
 			return true
 		}
+		return false
 	}
-	return false
+	return AddressComesBefore(first.IP, second.IP)
+}
+
+// AddressComesBefore returns a bool with regards to numerical address order.
+// Note that IPv4 addresses come before IPv6 addresses.
+func AddressComesBefore(firstIP, secondIP net.IP) bool {
+	if firstIP.To4() == nil && secondIP.To4() != nil {
+		return true
+	} else if firstIP.To4() != nil && secondIP.To4() == nil {
+		return false
+	}
+	difference := bytes.Compare([]byte(firstIP), []byte(secondIP))
+	if difference > 0 {
+		return false
+	}
+	return true
+}
+
+// V4AddressDifference returns the number of addresses between two addresses
+func V4AddressDifference(firstIP, secondIP net.IP) int64 {
+	return int64(ConvertV4AddressToInteger(secondIP)) - int64(ConvertV4AddressToInteger(firstIP))
 }
 
 // GetClassfulNetwork either return the classful network given an IPv4 address or
@@ -87,6 +109,14 @@ func SubnetZeroAddr(subnet *net.IPNet) net.IP {
 	return subnet.IP.Mask(subnet.Mask)
 }
 
+// BroadcastAddr returns the broadcast address
+// func BroadcastAddr(network *net.IPNet) net.IP {
+// 	bigInt := AddressCountBigInt(network)
+// 	result := DuplicateAddr(network.IP)
+// 	AddToAddr(result, bigInt.Uint64()-1)
+// 	return result
+// }
+
 // DuplicateAddr creates a new copy of net.IP
 func DuplicateAddr(addr net.IP) net.IP {
 	newIP := make(net.IP, len(addr))
@@ -95,21 +125,21 @@ func DuplicateAddr(addr net.IP) net.IP {
 }
 
 // AddToAddr returns the same net.IP with its address incremented by val
-func AddToAddr(addr net.IP, val int) net.IP {
-	for i := 0; i < val; i++ {
-		for octet := len(addr) - 1; octet >= 0; octet-- {
-			if val > 0 {
-				addr[octet]++
-			} else {
-				addr[octet]--
-			}
-			if uint8(addr[octet]) > 0 {
-				break
-			}
-		}
-	}
-	return addr
-}
+// func AddToAddr(addr net.IP, val uint64) net.IP {
+// 	for i := uint64(0); i < val; i++ {
+// 		for octet := len(addr) - 1; octet >= 0; octet-- {
+// 			if val > 0 {
+// 				addr[octet]++
+// 			} else {
+// 				addr[octet]--
+// 			}
+// 			if uint8(addr[octet]) > 0 {
+// 				break
+// 			}
+// 		}
+// 	}
+// 	return addr
+// }
 
 // NextAddr returns a new net.IP that is the next address
 func NextAddr(addr net.IP) net.IP {
@@ -130,7 +160,7 @@ func maxInt() int {
 	return math.MaxInt64
 }
 
-// AddressCountInt will return -1 if the number of addresses would overflow an Int
+// AddressCountInt will return -1 if the number of addresses would overflow an int
 func AddressCountInt(network *net.IPNet) int {
 	val := AddressCountBigInt(network)
 	limit := big.NewInt(int64(maxInt()))
@@ -255,18 +285,49 @@ func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*n
 	return unused
 }
 
+// FindInbetweenV4Subnets returns a slice of subnets
+func FindInbetweenV4Subnets(start, stop net.IP) (subnets []*net.IPNet) {
+	if AddressComesBefore(start, stop) && start.To4() != nil && stop.To4() != nil {
+		current := DuplicateAddr(start)
+		for {
+			currentSubnet := &net.IPNet{IP: current}
+			for ones := 1; ones <= 32; ones++ {
+				currentSubnet.Mask = net.CIDRMask(ones, 32)
+				increment := uint32(AddressCountBigInt(currentSubnet).Uint64())
+				addrInteger := ConvertV4AddressToInteger(currentSubnet.IP)
+				if addrInteger+increment-1 > ConvertV4AddressToInteger(stop) {
+					continue
+				}
+				if SubnetZeroAddr(currentSubnet).Equal(currentSubnet.IP) {
+					break
+				}
+			}
+			subnets = append(subnets, currentSubnet)
+			current = NextNetwork(currentSubnet).IP
+			if !current.Equal(stop) && !AddressComesBefore(current, stop) {
+				break
+			}
+		}
+	}
+	return subnets
+}
+
 const allOnesAddress = (255 * 256 * 256 * 256) + (255 * 256 * 256) + (255 * 256) + (255)
 
-// ConvertIntegerIPv4 will return the net.IP of the integer represented address
-func ConvertIntegerIPv4(intAddress uint64) *net.IP {
-	if intAddress > allOnesAddress {
-		return nil
+// ConvertV4IntegerToAddress will return the net.IP of the integer represented address
+func ConvertV4IntegerToAddress(intAddress uint32) net.IP {
+	if intAddress <= allOnesAddress {
+		return net.IPv4(
+			uint8((intAddress>>24)&0xFF),
+			uint8((intAddress>>16)&0xFF),
+			uint8((intAddress>>8)&0xFF),
+			uint8(intAddress&0xFF),
+		)
 	}
-	result := net.IPv4(
-		uint8((intAddress>>24)&0xFF),
-		uint8((intAddress>>16)&0xFF),
-		uint8((intAddress>>8)&0xFF),
-		uint8(intAddress&0xFF),
-	)
-	return &result
+	return nil
+}
+
+// ConvertV4AddressToInteger will return the net.IP of the integer represented address
+func ConvertV4AddressToInteger(address net.IP) uint32 {
+	return binary.BigEndian.Uint32(address[12:16])
 }
