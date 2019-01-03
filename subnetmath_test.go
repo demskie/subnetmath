@@ -1,27 +1,94 @@
 package subnetmath
 
 import (
+	"math/big"
 	"net"
+	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 )
 
-// func TestBroadcastAddress(t *testing.T) {
-// 	input := ParseNetworkCIDR("192.168.0.0/23")
-// 	actualOutput := BroadcastAddr(input)
-// 	expectedOutput := net.ParseIP("192.168.1.255")
-// 	if !actualOutput.Equal(expectedOutput) {
-// 		t.Error("\n",
-// 			"<<<input>>>\n", input,
-// 			"\n<<<actual_output>>>\n", actualOutput,
-// 			"\n<<<expected_output>>>\n", expectedOutput,
-// 		)
-// 	}
-// }
+// BUG: why does reflect.DeepEqual not return expected results
+func sliceOfSubnetsAreEqual(alpha, bravo []*net.IPNet) bool {
+	if len(alpha) != len(bravo) {
+		return false
+	}
+	for i := range alpha {
+		if !NetworksAreIdentical(alpha[i], bravo[i]) {
+			return false
+		}
+	}
+	return true
+}
 
-func TestConvertV4IntegerToAddress(t *testing.T) {
-	actualAddress := ConvertV4IntegerToAddress(3232235778)
+func TestNetworksAreIdentical(t *testing.T) {
+	if !NetworksAreIdentical(
+		ParseNetworkCIDR("192.168.0.0/23"),
+		ParseNetworkCIDR("192.168.0.0/23"),
+	) {
+		t.Error("\n",
+			ParseNetworkCIDR("192.168.0.0/23"),
+			"is identical to",
+			ParseNetworkCIDR("192.168.0.0/23"),
+		)
+	}
+}
+
+func TestNetworkComesBefore(t *testing.T) {
+	if !NetworkComesBefore(
+		ParseNetworkCIDR("192.168.0.0/23"),
+		ParseNetworkCIDR("192.168.8.0/23"),
+	) {
+		t.Error("\n",
+			ParseNetworkCIDR("192.168.0.0/23"),
+			"does not come after",
+			ParseNetworkCIDR("192.168.8.0/23"),
+		)
+	}
+}
+
+func TestSubnetZeroAddr(t *testing.T) {
+	input1, input2, _ := net.ParseCIDR("192.168.0.5/23")
+	actualOutput := SubnetZeroAddr(input1, input2)
+	expectedOutput := net.ParseIP("192.168.0.0")
+	if !actualOutput.Equal(expectedOutput) {
+		t.Error("\n",
+			"<<<input>>>\n", input1, input2,
+			"\n<<<actual_output>>>\n", actualOutput,
+			"\n<<<expected_output>>>\n", expectedOutput,
+		)
+	}
+}
+
+func TestNextNetwork(t *testing.T) {
+	input := ParseNetworkCIDR("192.168.0.0/23")
+	actualOutput := NextNetwork(input)
+	expectedOutput := ParseNetworkCIDR("192.168.2.0/23")
+	if !NetworksAreIdentical(actualOutput, expectedOutput) {
+		t.Error("\n",
+			"<<<input>>>\n", input,
+			"\n<<<actual_output>>>\n", actualOutput,
+			"\n<<<expected_output>>>\n", expectedOutput,
+		)
+	}
+}
+
+func TestBroadcastAddr(t *testing.T) {
+	input := ParseNetworkCIDR("192.168.0.0/23")
+	actualOutput := BroadcastAddr(input)
+	expectedOutput := net.ParseIP("192.168.1.255")
+	if !actualOutput.Equal(expectedOutput) {
+		t.Error("\n",
+			"<<<input>>>\n", input,
+			"\n<<<actual_output>>>\n", actualOutput,
+			"\n<<<expected_output>>>\n", expectedOutput,
+		)
+	}
+}
+
+func TestIntToAddr(t *testing.T) {
+	actualAddress := IntToAddr(big.NewInt(3232235778))
 	expectedAddress := net.ParseIP("192.168.1.2")
 	if !actualAddress.Equal(expectedAddress) {
 		t.Error("\n",
@@ -32,10 +99,10 @@ func TestConvertV4IntegerToAddress(t *testing.T) {
 	}
 }
 
-func TestConvertV4AddressToInteger(t *testing.T) {
-	actualInteger := ConvertV4AddressToInteger(net.ParseIP("192.168.1.2"))
-	expectedInteger := uint32(3232235778)
-	if actualInteger != expectedInteger {
+func TestAddrToInt(t *testing.T) {
+	actualInteger := AddrToInt(net.ParseIP("192.168.1.2"))
+	expectedInteger := big.NewInt(3232235778)
+	if actualInteger.Cmp(expectedInteger) != 0 {
 		t.Error("\n",
 			"<<<input>>>\n", "3232235778",
 			"\n<<<actual_output>>>\n", actualInteger,
@@ -44,24 +111,12 @@ func TestConvertV4AddressToInteger(t *testing.T) {
 	}
 }
 
-func TestV4AddressDifference(t *testing.T) {
-	output := V4AddressDifference(net.ParseIP("192.168.1.2"), net.ParseIP("192.168.2.2"))
-	expected := int64(256)
-	if output != expected {
-		t.Error("\n",
-			"<<<input>>>\n", "3232235778",
-			"\n<<<actual_output>>>\n", output,
-			"\n<<<expected_output>>>\n", expected,
-		)
-	}
-}
-
-func TestFindInbetweenV4Subnets(t *testing.T) {
+func TestFindInbetweenSubnets(t *testing.T) {
 	input := []net.IP{
 		net.ParseIP("192.168.1.2"),
 		net.ParseIP("192.168.2.2"),
 	}
-	output := FindInbetweenV4Subnets(input[0], input[1])
+	output := FindInbetweenSubnets(input[0], input[1])
 	expected := []*net.IPNet{
 		ParseNetworkCIDR("192.168.1.2/31"),
 		ParseNetworkCIDR("192.168.1.4/30"),
@@ -73,7 +128,7 @@ func TestFindInbetweenV4Subnets(t *testing.T) {
 		ParseNetworkCIDR("192.168.2.0/31"),
 		ParseNetworkCIDR("192.168.2.2/32"),
 	}
-	if subnetsAreEqual(output, expected) == false {
+	if !sliceOfSubnetsAreEqual(output, expected) {
 		t.Error("\n",
 			"<<<input>>>\n", input,
 			"\n<<<actual_output>>>\n", spew.Sdump(output),
@@ -82,14 +137,14 @@ func TestFindInbetweenV4Subnets(t *testing.T) {
 	}
 }
 
-func TestGetAllAddresses(t *testing.T) {
+func TestGetAllAddressesLimiter(t *testing.T) {
 	input := ParseNetworkCIDR("2607:fb38:10:1::/64")
-	output := GetAllAddresses(input)
-	if len(output) != 0 {
+	output := GetAllNetworkAddresses(input, 1e5)
+	if len(output) != 1e5 {
 		t.Error("\n",
 			"<<<input>>>\n", "2607:fb38:10:1::/64",
-			"\n<<<actual_output>>>\n", output,
-			"\n<<<expected_output>>>\n", "length: 0",
+			"\n<<<actual_output>>>\n", "length:", len(output),
+			"\n<<<expected_output>>>\n", "length:", strconv.Itoa(1e5),
 		)
 	}
 }
@@ -101,7 +156,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 	expected := []*net.IPNet{
 		ParseNetworkCIDR("10.71.8.0/21"),
 	}
-	if subnetsAreEqual(output, expected) == false {
+	if !sliceOfSubnetsAreEqual(output, expected) {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,
@@ -124,7 +179,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 		ParseNetworkCIDR("192.168.2.128/25"),
 		ParseNetworkCIDR("192.168.3.0/24"),
 	}
-	if subnetsAreEqual(output, expected) == false {
+	if !sliceOfSubnetsAreEqual(output, expected) {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,
@@ -203,7 +258,7 @@ func TestFindUnusedSubnets(t *testing.T) {
 		ParseNetworkCIDR("172.16.255.128/25"),
 	}
 	output = FindUnusedSubnets(aggregate, subnets...)
-	if subnetsAreEqual(output, expected) == false {
+	if !sliceOfSubnetsAreEqual(output, expected) {
 		t.Error(
 			"\n<<<input>>>\n", "aggregate:", aggregate, "\n", subnets,
 			"\n<<<actual_output>>>\n", output,
@@ -212,16 +267,17 @@ func TestFindUnusedSubnets(t *testing.T) {
 	}
 }
 
-func BenchmarkConvertV4IntegerToAddress(b *testing.B) {
+func BenchmarkIntToAddr(b *testing.B) {
+	val := big.NewInt(3232235778)
 	for i := 0; i < b.N; i++ {
-		ConvertV4IntegerToAddress(3232235778)
+		IntToAddr(val)
 	}
 }
 
-func BenchmarkConvertV4AddressToInteger(b *testing.B) {
+func BenchmarkAddrToInt(b *testing.B) {
 	address := net.ParseIP("192.168.1.2")
 	for i := 0; i < b.N; i++ {
-		ConvertV4AddressToInteger(address)
+		AddrToInt(address)
 	}
 }
 
@@ -239,24 +295,17 @@ func BenchmarkNetworkComesBefore(b *testing.B) {
 	}
 }
 
-func BenchmarkGetClassfulNetwork(b *testing.B) {
-	addr := net.ParseIP("192.168.0.0")
+func BenchmarkIPv4ClassfulNetwork(b *testing.B) {
+	address := net.ParseIP("192.168.0.0")
 	for i := 0; i < b.N; i++ {
-		GetClassfulNetwork(addr)
+		IPv4ClassfulNetwork(address)
 	}
 }
 
-//func BenchmarkAddToAddr(b *testing.B) {
-//	addr := net.ParseIP("192.168.0.0")
-//	for i := 0; i < b.N; i++ {
-//		addr = AddToAddr(addr, 1)
-//	}
-//}
-
 func BenchmarkNextAddr(b *testing.B) {
-	addr := net.ParseIP("192.168.0.0")
+	address := net.ParseIP("192.168.0.0")
 	for i := 0; i < b.N; i++ {
-		addr = NextAddr(addr)
+		address = NextAddr(address)
 	}
 }
 
@@ -280,7 +329,15 @@ func BenchmarkNextNetwork(b *testing.B) {
 func BenchmarkGetAllAddresses(b *testing.B) {
 	network := ParseNetworkCIDR("192.168.0.0/22")
 	for i := 0; i < b.N; i++ {
-		GetAllAddresses(network)
+		GetAllNetworkAddresses(network, 1e6)
+	}
+}
+
+func BenchmarkFindInbetweenSubnets(b *testing.B) {
+	alpha := net.ParseIP("192.168.0.0")
+	bravo := net.ParseIP("192.168.3.255")
+	for i := 0; i < b.N; i++ {
+		FindInbetweenSubnets(alpha, bravo)
 	}
 }
 
@@ -292,13 +349,5 @@ func BenchmarkFindUnusedSubnets(b *testing.B) {
 	}
 	for i := 0; i < b.N; i++ {
 		FindUnusedSubnets(aggregate, subnets...)
-	}
-}
-
-func BenchmarkFindInbetweenV4Subnets(b *testing.B) {
-	alpha := net.ParseIP("192.168.0.0")
-	bravo := net.ParseIP("192.168.3.255")
-	for i := 0; i < b.N; i++ {
-		FindInbetweenV4Subnets(alpha, bravo)
 	}
 }
