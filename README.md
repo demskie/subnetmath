@@ -7,7 +7,7 @@ func main() {
         subnetmath.ParseNetworkCIDR("192.168.1.0/24"),
         subnetmath.ParseNetworkCIDR("192.168.2.32/30"),
     }
-    unused := subnetmath.UnusedSubnets(aggregate, subnets)
+    unused := subnetmath.FindUnusedSubnets(aggregate, subnets)
     // [ 192.168.0.0/24 192.168.2.0/27 192.168.2.36/30 192.168.2.40/29 192.168.2.48/28 192.168.2.64/26 192.168.2.128/25 192.168.3.0/24 ]
 }
 ```
