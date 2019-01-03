@@ -237,6 +237,7 @@ func findMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet
 
 // FindUnusedSubnets returns a slice of unused subnets given the aggregate and sibling subnets
 func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.IPNet) {
+	// BUG: need to refactor using the new logic
 	if len(subnets) == 0 {
 		return []*net.IPNet{aggregate}
 	}
@@ -258,8 +259,7 @@ func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*n
 	return unused
 }
 
-// IntToAddr will return the net.IP of the big.Int represented address.
-// Note that the underlying byte slice for an IPv4 address will have a length of four
+// IntToAddr will return the net.IP of the big.Int represented address
 func IntToAddr(intAddress *big.Int) net.IP {
 	intBytes := intAddress.Bytes()
 	if len(intBytes) == 4 {
