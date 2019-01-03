@@ -177,7 +177,8 @@ func maskBitLength(address net.IP) int {
 	return 128
 }
 
-// FindInbetweenSubnets returns a slice of subnets given a range of IP addresses
+// FindInbetweenSubnets returns a slice of subnets given a range of IP addresses.
+// Note that the delimiter 'stop' is inclusive. In other words, it will be included in the result.
 func FindInbetweenSubnets(start, stop net.IP) []*net.IPNet {
 	if sameAddrType(start, stop) && AddressComesBefore(start, stop) {
 		var subnets []*net.IPNet
