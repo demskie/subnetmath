@@ -3,7 +3,6 @@ package subnetmath
 import (
 	"math/big"
 	"net"
-	"strconv"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -133,18 +132,6 @@ func TestFindInbetweenSubnets(t *testing.T) {
 			"<<<input>>>\n", input,
 			"\n<<<actual_output>>>\n", spew.Sdump(output),
 			"\n<<<expected_output>>>\n", spew.Sdump(expected),
-		)
-	}
-}
-
-func TestGetAllAddressesLimiter(t *testing.T) {
-	input := ParseNetworkCIDR("2607:fb38:10:1::/64")
-	output := GetAllNetworkAddresses(input, 1e5)
-	if len(output) != 1e5 {
-		t.Error("\n",
-			"<<<input>>>\n", "2607:fb38:10:1::/64",
-			"\n<<<actual_output>>>\n", "length:", len(output),
-			"\n<<<expected_output>>>\n", "length:", strconv.Itoa(1e5),
 		)
 	}
 }
@@ -323,13 +310,6 @@ func BenchmarkNextNetwork(b *testing.B) {
 	network := ParseNetworkCIDR("192.168.0.0/28")
 	for i := 0; i < b.N; i++ {
 		network = NextNetwork(network)
-	}
-}
-
-func BenchmarkGetAllAddresses(b *testing.B) {
-	network := ParseNetworkCIDR("192.168.0.0/22")
-	for i := 0; i < b.N; i++ {
-		GetAllNetworkAddresses(network, 1e6)
 	}
 }
 

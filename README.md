@@ -23,7 +23,6 @@ BenchmarkIPv4ClassfulNetwork-8    	20000000	        92.9 ns/op	      68 B/op	   
 BenchmarkNextAddr-8               	10000000	       175 ns/op	     104 B/op	       4 allocs/op
 BenchmarkShrinkNetwork-8          	 2000000	       743 ns/op	     104 B/op	      26 allocs/op
 BenchmarkNextNetwork-8            	 3000000	       494 ns/op	     384 B/op	      12 allocs/op
-BenchmarkGetAllAddresses-8        	   10000	    155484 ns/op	  123200 B/op	    3091 allocs/op
 BenchmarkFindInbetweenSubnets-8   	  200000	     11676 ns/op	    6960 B/op	     194 allocs/op
 BenchmarkFindUnusedSubnets-8      	   50000	     34091 ns/op	   10304 B/op	     564 allocs/op
 ```

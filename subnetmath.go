@@ -130,24 +130,6 @@ func addressCount(network *net.IPNet) *big.Int {
 	return nil
 }
 
-// GetAllNetworkAddresses will return a limited slice of net.IPs for the subnet specified
-func GetAllNetworkAddresses(network *net.IPNet, limit int) []net.IP {
-	if network != nil {
-		originalAddrInt := AddrToInt(network.IP)
-		incrementInt := addressCount(network)
-		var results []net.IP
-		for i := new(big.Int).Set(bigZero); i.Cmp(incrementInt) < 0; i.Add(i, bigOne) {
-			val := new(big.Int).Set(originalAddrInt)
-			results = append(results, IntToAddr(val.Add(val, i)))
-			if len(results) >= limit {
-				break
-			}
-		}
-		return results
-	}
-	return nil
-}
-
 // ShrinkNetwork increases the mask size by one
 func ShrinkNetwork(network *net.IPNet) *net.IPNet {
 	if network != nil {
