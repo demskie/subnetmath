@@ -153,10 +153,8 @@ func ShrinkNetwork(network *net.IPNet) *net.IPNet {
 	if network != nil {
 		ones, bits := network.Mask.Size()
 		if ones < bits {
-			return &net.IPNet{
-				IP:   network.IP,
-				Mask: net.CIDRMask(ones+1, bits),
-			}
+			network.Mask = net.CIDRMask(ones+1, bits)
+			return network
 		}
 	}
 	return nil
@@ -212,7 +210,12 @@ func FindInbetweenSubnets(start, stop net.IP) []*net.IPNet {
 	return nil
 }
 
+func isValidSubnet(network *net.IPNet) bool {
+	return SubnetZeroAddr(network.IP, network).Equal(network.IP)
+}
+
 func findNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
+	// OPTIMIZE: would having the subnets sorted allow for substantial shortcuts?
 	for _, otherNetwork := range otherNetworks {
 		if network.Contains(otherNetwork.IP) || otherNetwork.Contains(network.IP) {
 			return otherNetwork
@@ -221,43 +224,62 @@ func findNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *n
 	return nil
 }
 
-func findMaskWithoutIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *net.IPNet {
-	currentNetwork := DuplicateNetwork(network)
+func findNetworkWithoutIntersection(currentNetwork *net.IPNet, otherNetworks ...*net.IPNet) {
+	originalMask := make(net.IPMask, len(currentNetwork.Mask))
+	copy(currentNetwork.Mask, originalMask)
+	var lastIntersect *net.IPNet
 	for {
-		currentNetwork = ShrinkNetwork(currentNetwork)
-		if currentNetwork == nil {
-			break
-		}
-		if findNetworkIntersection(currentNetwork, otherNetworks...) == nil &&
-			SubnetZeroAddr(currentNetwork.IP, currentNetwork).Equal(currentNetwork.IP) {
-			return currentNetwork
+		// shrink the network cidr by one
+		nextNetwork := ShrinkNetwork(currentNetwork)
+		if nextNetwork == nil {
+			// We trying to shrink a network size of one. This address is completely unusable.
+			// Try again with a new address offset from the lastIntersection
+			lastIntersectAddr := AddrToInt(lastIntersect.IP)
+			lastIntersectAddr.Add(lastIntersectAddr, addressCount(lastIntersect))
+			currentNetwork.IP = IntToAddr(lastIntersectAddr)
+			currentNetwork.Mask = originalMask
+		} else {
+			// search through all otherNetworks trying to find an intersection
+			lastIntersect = findNetworkIntersection(currentNetwork, otherNetworks...)
+			// return this network if there is no intersection and our network is valid
+			if lastIntersect == nil && isValidSubnet(currentNetwork) {
+				return
+			}
 		}
 	}
-	return nil
+}
+
+// NetworkContainsSubnet validates that the network is a valid supernet
+func NetworkContainsSubnet(network *net.IPNet, subnet *net.IPNet) bool {
+	if network != nil && subnet != nil {
+		supernetInt := AddrToInt(network.IP)
+		subnetInt := AddrToInt(subnet.IP)
+		if supernetInt.Cmp(subnetInt) <= 0 {
+			supernetInt.Add(supernetInt, addressCount(network))
+			subnetInt.Add(subnetInt, addressCount(subnet))
+			if supernetInt.Cmp(subnetInt) >= 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // FindUnusedSubnets returns a slice of unused subnets given the aggregate and sibling subnets
 func FindUnusedSubnets(aggregate *net.IPNet, subnets ...*net.IPNet) (unused []*net.IPNet) {
-	// BUG: need to refactor using the new logic
-	if len(subnets) == 0 {
-		return []*net.IPNet{aggregate}
-	}
-	if findNetworkIntersection(aggregate, subnets...) == nil {
-		return nil
-	}
-	newSubnet := DuplicateNetwork(aggregate)
-	var canidateSubnet *net.IPNet
-	for aggregate.Contains(newSubnet.IP) {
-		canidateSubnet = findMaskWithoutIntersection(newSubnet, subnets...)
-		if canidateSubnet != nil {
-			unused = append(unused, canidateSubnet)
-			newSubnet = NextNetwork(canidateSubnet)
-			newSubnet.Mask = aggregate.Mask
-		} else {
-			newSubnet.IP = NextAddr(newSubnet.IP)
+	nextSubnet := DuplicateNetwork(aggregate)
+	if len(subnets) > 0 && findNetworkIntersection(aggregate, subnets...) != nil {
+		for {
+			findNetworkWithoutIntersection(nextSubnet, subnets...)
+			if NetworkContainsSubnet(aggregate, nextSubnet) {
+				unused = append(unused, nextSubnet)
+				nextSubnet = NextNetwork(nextSubnet)
+				continue
+			}
+			return unused
 		}
 	}
-	return unused
+	return append(unused, nextSubnet)
 }
 
 // IntToAddr will return the net.IP of the big.Int represented address
@@ -273,9 +295,9 @@ func IntToAddr(intAddress *big.Int) net.IP {
 func AddrToInt(address net.IP) *big.Int {
 	v4addr := address.To4()
 	if v4addr != nil {
-		return big.NewInt(0).SetBytes(v4addr)
+		return new(big.Int).SetBytes(v4addr)
 	}
-	return big.NewInt(0).SetBytes(address.To16())
+	return new(big.Int).SetBytes(address.To16())
 }
 
 // IPv4ClassfulNetwork eithers return the classful network given an IPv4 address or
