@@ -23,11 +23,13 @@ func ParseNetworkCIDR(cidr string) *net.IPNet {
 
 // NetworksAreIdentical returns a bool with regards to the two networks being equal
 func NetworksAreIdentical(first, second *net.IPNet) bool {
-	if first != nil && second != nil && first.IP.Equal(second.IP) {
-		firstSize, _ := first.Mask.Size()
-		secondSize, _ := second.Mask.Size()
-		if firstSize == secondSize {
-			return true
+	if first != nil && second != nil {
+		if first.IP.Equal(second.IP) {
+			firstSize, _ := first.Mask.Size()
+			secondSize, _ := second.Mask.Size()
+			if firstSize == secondSize {
+				return true
+			}
 		}
 	}
 	return false
@@ -36,30 +38,36 @@ func NetworksAreIdentical(first, second *net.IPNet) bool {
 // NetworkComesBefore returns a bool with regards to numerical network order.
 // Note that IPv4 networks come before IPv6 networks.
 func NetworkComesBefore(first, second *net.IPNet) bool {
-	if first.IP.Equal(second.IP) {
-		firstMask, _ := first.Mask.Size()
-		secondMask, _ := second.Mask.Size()
-		if firstMask < secondMask {
-			return true
+	if first != nil && second != nil {
+		if first.IP.Equal(second.IP) {
+			firstMask, _ := first.Mask.Size()
+			secondMask, _ := second.Mask.Size()
+			if firstMask < secondMask {
+				return true
+			}
+			return false
 		}
-		return false
+		return AddressComesBefore(first.IP, second.IP)
 	}
-	return AddressComesBefore(first.IP, second.IP)
+	return false
 }
 
 // AddressComesBefore returns a bool with regards to numerical address order.
 // Note that IPv4 addresses come before IPv6 addresses.
 func AddressComesBefore(firstIP, secondIP net.IP) bool {
-	if firstIP.To4() == nil && secondIP.To4() != nil {
+	if firstIP != nil && secondIP != nil {
+		if firstIP.To4() == nil && secondIP.To4() != nil {
+			return true
+		} else if firstIP.To4() != nil && secondIP.To4() == nil {
+			return false
+		}
+		difference := bytes.Compare([]byte(firstIP), []byte(secondIP))
+		if difference > 0 {
+			return false
+		}
 		return true
-	} else if firstIP.To4() != nil && secondIP.To4() == nil {
-		return false
 	}
-	difference := bytes.Compare([]byte(firstIP), []byte(secondIP))
-	if difference > 0 {
-		return false
-	}
-	return true
+	return false
 }
 
 // DuplicateNetwork returns a new copy of *net.IPNet
