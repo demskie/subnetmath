@@ -1,7 +1,6 @@
 package subnetmath
 
 import (
-	"bytes"
 	"math/big"
 	"net"
 )
@@ -55,16 +54,12 @@ func NetworkComesBefore(first, second *net.IPNet) bool {
 // AddressComesBefore returns a bool with regards to numerical address order.
 // Note that IPv4 addresses come before IPv6 addresses.
 func AddressComesBefore(firstIP, secondIP net.IP) bool {
-	if firstIP != nil && secondIP != nil {
-		if firstIP.To4() == nil && secondIP.To4() != nil {
-			return true
-		} else if firstIP.To4() != nil && secondIP.To4() == nil {
-			return false
-		}
-		difference := bytes.Compare([]byte(firstIP), []byte(secondIP))
-		if difference > 0 {
-			return false
-		}
+	if firstIP.To4() == nil && secondIP.To4() != nil {
+		return true
+	} else if firstIP.To4() != nil && secondIP.To4() == nil {
+		return false
+	}
+	if AddrToInt(firstIP).Cmp(AddrToInt(secondIP)) < 0 {
 		return true
 	}
 	return false
