@@ -128,8 +128,6 @@ func (b *Buffer) nextNetworkEcho(network *net.IPNet) *net.IPNet {
 // Note that the delimiter 'stop' is inclusive. In other words, it will be included in the result.
 func (b *Buffer) FindInbetweenSubnets(start, stop net.IP) []*net.IPNet {
 	if sameAddrType(start, stop) && b.AddressComesBefore(start, stop) {
-		b.mtx.Lock()
-		defer b.mtx.Unlock()
 		var subnets []*net.IPNet
 		maskBits := maskBitLength(start)
 		current := DuplicateAddr(start)
