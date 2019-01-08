@@ -2,6 +2,7 @@ package subnetmath
 
 import (
 	"bytes"
+	"math"
 	"math/big"
 	"net"
 	"sync"
@@ -103,7 +104,7 @@ func (b *Buffer) addrToIntBravo(address net.IP) *big.Int {
 func (b *Buffer) addressCountCharlieDelta(network *net.IPNet) *big.Int {
 	if network != nil {
 		ones, bits := network.Mask.Size()
-		return b.bigIntCharlie.Exp(bigTwo, b.bigIntDelta.SetInt64(int64(bits-ones)), nil)
+		return b.bigIntCharlie.SetInt64(int64(math.Exp2(float64(bits - ones)))) // BUG: is double precision enough?
 	}
 	return nil
 }

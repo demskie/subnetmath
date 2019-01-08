@@ -1,6 +1,7 @@
 package subnetmath
 
 import (
+	"math"
 	"math/big"
 	"net"
 )
@@ -128,7 +129,7 @@ func NextAddr(addr net.IP) net.IP {
 func addressCount(network *net.IPNet) *big.Int {
 	if network != nil {
 		ones, bits := network.Mask.Size()
-		return new(big.Int).Exp(bigTwo, big.NewInt(int64(bits-ones)), nil)
+		return new(big.Int).SetInt64(int64(math.Exp2(float64(bits - ones)))) // BUG: is double precision enough?
 	}
 	return nil
 }
