@@ -321,6 +321,15 @@ func BenchmarkFindInbetweenSubnets(b *testing.B) {
 	}
 }
 
+func BenchmarkFindInbetweenSubnetsBuffered(b *testing.B) {
+	alpha := net.ParseIP("192.168.0.0")
+	bravo := net.ParseIP("192.168.3.255")
+	buf := NewBuffer()
+	for i := 0; i < b.N; i++ {
+		buf.FindInbetweenSubnets(alpha, bravo)
+	}
+}
+
 func BenchmarkFindUnusedSubnets(b *testing.B) {
 	aggregate := ParseNetworkCIDR("192.168.0.0/22")
 	subnets := []*net.IPNet{
