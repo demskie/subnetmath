@@ -30,6 +30,14 @@ func NewBuffer() *Buffer {
 	}
 }
 
+var memoizedBigExp2 [128]*big.Int
+
+func init() {
+	for i := range memoizedBigExp2 {
+		memoizedBigExp2[i] = new(big.Int).Exp(bigTwo, big.NewInt(int64(i)), nil)
+	}
+}
+
 // NetworkComesBefore returns a bool with regards to numerical network order.
 // Note that IPv4 networks come before IPv6 networks.
 func (b *Buffer) NetworkComesBefore(first, second *net.IPNet) bool {
@@ -107,7 +115,7 @@ func (b *Buffer) addressCountCharlieDelta(network *net.IPNet) *big.Int {
 		if bits <= 32 {
 			return b.bigIntCharlie.SetInt64(int64(math.Exp2(float64(bits - ones))))
 		}
-		return b.bigIntCharlie.Exp(bigTwo, big.NewInt(int64(bits-ones)), nil)
+		return memoizedBigExp2[bits-ones]
 	}
 	return nil
 }
