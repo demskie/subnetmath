@@ -23,7 +23,7 @@ func ParseNetworkCIDR(cidr string) *net.IPNet {
 
 // NetworksAreIdentical returns a bool with regards to the two networks being equal
 func NetworksAreIdentical(first, second *net.IPNet) bool {
-	if first != nil && second != nil {
+	if first != second {
 		if first.IP.Equal(second.IP) {
 			firstSize, _ := first.Mask.Size()
 			secondSize, _ := second.Mask.Size()
@@ -31,8 +31,9 @@ func NetworksAreIdentical(first, second *net.IPNet) bool {
 				return true
 			}
 		}
+		return false
 	}
-	return false
+	return true
 }
 
 // NetworkComesBefore returns a bool with regards to numerical network order.
@@ -129,7 +130,10 @@ func NextAddr(addr net.IP) net.IP {
 func addressCount(network *net.IPNet) *big.Int {
 	if network != nil {
 		ones, bits := network.Mask.Size()
-		return new(big.Int).SetInt64(int64(math.Exp2(float64(bits - ones)))) // BUG: is double precision enough?
+		if bits <= 32 {
+			return new(big.Int).SetInt64(int64(math.Exp2(float64(bits - ones))))
+		}
+		return new(big.Int).Exp(bigTwo, big.NewInt(int64(bits-ones)), nil)
 	}
 	return nil
 }

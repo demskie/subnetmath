@@ -104,7 +104,10 @@ func (b *Buffer) addrToIntBravo(address net.IP) *big.Int {
 func (b *Buffer) addressCountCharlieDelta(network *net.IPNet) *big.Int {
 	if network != nil {
 		ones, bits := network.Mask.Size()
-		return b.bigIntCharlie.SetInt64(int64(math.Exp2(float64(bits - ones)))) // BUG: is double precision enough?
+		if bits <= 32 {
+			return b.bigIntCharlie.SetInt64(int64(math.Exp2(float64(bits - ones))))
+		}
+		return b.bigIntCharlie.Exp(bigTwo, big.NewInt(int64(bits-ones)), nil)
 	}
 	return nil
 }

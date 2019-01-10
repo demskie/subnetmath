@@ -136,6 +136,59 @@ func TestFindInbetweenSubnets(t *testing.T) {
 	}
 }
 
+// 2001:400:: 2001:440:ffff:ffff:7fff:ffff:ffff:ffff
+
+func TestFindInbetweenSubnetsV6(t *testing.T) {
+	input := []net.IP{
+		net.ParseIP("2001:400::"),
+		net.ParseIP("2001:440:ffff:ffff:7fff:ffff:ffff:ffff"),
+	}
+	output := FindInbetweenSubnets(input[0], input[1])
+	expected := []*net.IPNet{
+		ParseNetworkCIDR("2001:400::/26"),
+		ParseNetworkCIDR("2001:440::/33"),
+		ParseNetworkCIDR("2001:440:8000::/34"),
+		ParseNetworkCIDR("2001:440:c000::/35"),
+		ParseNetworkCIDR("2001:440:e000::/36"),
+		ParseNetworkCIDR("2001:440:f000::/37"),
+		ParseNetworkCIDR("2001:440:f800::/38"),
+		ParseNetworkCIDR("2001:440:fc00::/39"),
+		ParseNetworkCIDR("2001:440:fe00::/40"),
+		ParseNetworkCIDR("2001:440:ff00::/41"),
+		ParseNetworkCIDR("2001:440:ff80::/42"),
+		ParseNetworkCIDR("2001:440:ffc0::/43"),
+		ParseNetworkCIDR("2001:440:ffe0::/44"),
+		ParseNetworkCIDR("2001:440:fff0::/45"),
+		ParseNetworkCIDR("2001:440:fff8::/46"),
+		ParseNetworkCIDR("2001:440:fffc::/47"),
+		ParseNetworkCIDR("2001:440:fffe::/48"),
+		ParseNetworkCIDR("2001:440:ffff::/49"),
+		ParseNetworkCIDR("2001:440:ffff:8000::/50"),
+		ParseNetworkCIDR("2001:440:ffff:c000::/51"),
+		ParseNetworkCIDR("2001:440:ffff:e000::/52"),
+		ParseNetworkCIDR("2001:440:ffff:f000::/53"),
+		ParseNetworkCIDR("2001:440:ffff:f800::/54"),
+		ParseNetworkCIDR("2001:440:ffff:fc00::/55"),
+		ParseNetworkCIDR("2001:440:ffff:fe00::/56"),
+		ParseNetworkCIDR("2001:440:ffff:ff00::/57"),
+		ParseNetworkCIDR("2001:440:ffff:ff80::/58"),
+		ParseNetworkCIDR("2001:440:ffff:ffc0::/59"),
+		ParseNetworkCIDR("2001:440:ffff:ffe0::/60"),
+		ParseNetworkCIDR("2001:440:ffff:fff0::/61"),
+		ParseNetworkCIDR("2001:440:ffff:fff8::/62"),
+		ParseNetworkCIDR("2001:440:ffff:fffc::/63"),
+		ParseNetworkCIDR("2001:440:ffff:fffe::/64"),
+		ParseNetworkCIDR("2001:440:ffff:ffff::/65"),
+	}
+	if !sliceOfSubnetsAreEqual(output, expected) {
+		t.Error("\n",
+			"<<<input>>>\n", input,
+			"\n<<<actual_output>>>\n", spew.Sdump(output),
+			"\n<<<expected_output>>>\n", spew.Sdump(expected),
+		)
+	}
+}
+
 func TestFindUnusedSubnets(t *testing.T) {
 	aggregate := ParseNetworkCIDR("10.71.8.0/21")
 	subnets := []*net.IPNet{}
