@@ -59,9 +59,9 @@ func (b *Buffer) NetworkComesBefore(first, second *net.IPNet) bool {
 // Note that IPv4 addresses come before IPv6 addresses.
 func (b *Buffer) AddressComesBefore(firstIP, secondIP net.IP) bool {
 	if firstIP.To4() == nil && secondIP.To4() != nil {
-		return true
-	} else if firstIP.To4() != nil && secondIP.To4() == nil {
 		return false
+	} else if firstIP.To4() != nil && secondIP.To4() == nil {
+		return true
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()

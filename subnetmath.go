@@ -57,9 +57,9 @@ func NetworkComesBefore(first, second *net.IPNet) bool {
 // Note that IPv4 addresses come before IPv6 addresses.
 func AddressComesBefore(firstIP, secondIP net.IP) bool {
 	if firstIP.To4() == nil && secondIP.To4() != nil {
-		return true
-	} else if firstIP.To4() != nil && secondIP.To4() == nil {
 		return false
+	} else if firstIP.To4() != nil && secondIP.To4() == nil {
+		return true
 	}
 	if AddrToInt(firstIP).Cmp(AddrToInt(secondIP)) < 0 {
 		return true

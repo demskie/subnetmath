@@ -41,8 +41,18 @@ func TestNetworkComesBefore(t *testing.T) {
 	) {
 		t.Error("\n",
 			ParseNetworkCIDR("192.168.0.0/23"),
-			"does not come after",
+			"didn't come before",
 			ParseNetworkCIDR("192.168.8.0/23"),
+		)
+	}
+	if !NetworkComesBefore(
+		ParseNetworkCIDR("192.168.0.0/23"),
+		ParseNetworkCIDR("fe80::/64"),
+	) {
+		t.Error("\n",
+			ParseNetworkCIDR("192.168.0.0/23"),
+			"didn't come before",
+			ParseNetworkCIDR("fe80::/64"),
 		)
 	}
 }
