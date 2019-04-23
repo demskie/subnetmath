@@ -215,8 +215,9 @@ func findNetworkIntersection(network *net.IPNet, otherNetworks ...*net.IPNet) *n
 }
 
 func findNetworkWithoutIntersection(currentNetwork *net.IPNet, otherNetworks ...*net.IPNet) {
-	originalMask := make(net.IPMask, len(currentNetwork.Mask))
-	copy(currentNetwork.Mask, originalMask)
+	// BUG: the logic here needs major rework, lots of performance left on the table
+	allZeroMask := make(net.IPMask, len(currentNetwork.Mask))
+	copy(currentNetwork.Mask, allZeroMask)
 	var lastIntersect *net.IPNet
 	for {
 		// shrink the network cidr by one
@@ -227,7 +228,7 @@ func findNetworkWithoutIntersection(currentNetwork *net.IPNet, otherNetworks ...
 			lastIntersectAddr := AddrToInt(lastIntersect.IP)
 			lastIntersectAddr.Add(lastIntersectAddr, addressCount(lastIntersect))
 			currentNetwork.IP = IntToAddr(lastIntersectAddr)
-			currentNetwork.Mask = originalMask
+			currentNetwork.Mask = allZeroMask
 		} else {
 			// search through all otherNetworks trying to find an intersection
 			lastIntersect = findNetworkIntersection(currentNetwork, otherNetworks...)
