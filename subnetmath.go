@@ -11,6 +11,14 @@ var bigZero = big.NewInt(0)
 var bigOne = big.NewInt(1)
 var bigTwo = big.NewInt(2)
 
+type CMP int
+
+const (
+	BEFORE CMP = iota - 1
+	EQUAL
+	AFTER
+)
+
 // ParseNetworkCIDR is a convienence function that will return either the *net.IPNet
 // or nil if the supplied cidr is invalid
 func ParseNetworkCIDR(cidr string) *net.IPNet {
